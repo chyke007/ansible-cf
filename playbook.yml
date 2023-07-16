@@ -1,0 +1,70 @@
+---
+- name: Ansible_CF project
+  hosts: tag_Name_Slavehost
+  remote_user: ec2-user
+  become: true
+  tasks:
+    - name: Fetch Key Pair Id
+      amazon.aws.ssm_parameter:
+        name: /myapp/ssh-private-key
+        decrypt: true
+      register: key_pair
+
+    - name: Fetch SSH private key from Parameter Store
+      amazon.aws.ssm_parameter:
+        name: "/ec2/keypair/key-{{ key_pair.parameters[0].Value }}"
+        decrypt: true
+      register: ssh_key
+
+    - name: Create temporary directory for the SSH key
+      tempfile:
+        state: directory
+      register: ssh_dir
+
+    - name: Save the SSH private key to a file
+      copy:
+        content: "{{ ssh_key.parameters[0].Value }}"
+        dest: "{{ ssh_dir.path }}/my_key.pem"
+        mode: 0600
+
+    - name: Set the temporary SSH private key as the default key for Ansible
+      set_fact:
+        ansible_ssh_private_key_file: "{{ ssh_dir.path }}/my_key.pem"
+
+    - name: Install Packages
+      apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: true
+      with_items:
+        - apache2
+        - mysql-server
+        - mysql-common
+        - mysql-client
+        - libapache2-mod-wsgi-py3
+
+    - name: Start Services
+      service:
+        name: "{{ item }}"
+        state: started
+      with_items:
+        - apache2
+        - mysql
+
+    - name: Enable modssl
+      shell: a2enmod ssl
+
+    - name: Enable default HTTP site
+      shell: a2ensite default-ssl
+
+    - name: Restart Apache2 Sevrer
+      service:
+        name: apache2
+        state: restarted
+
+    # Add more tasks as needed to configure the instances.
+
+    - name: Clean up the temporary SSH key file
+      file:
+        path: "{{ ssh_dir.path }}/my_key.pem"
+        state: absent
