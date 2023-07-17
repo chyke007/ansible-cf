@@ -2,34 +2,66 @@
 - name: Ansible_CF project
   hosts: tag_Name_Slavehost
   become: true
+  
+  vars:
+    # Specify the path to your .env file on your local machine
+    backend_env_file: /home/ubuntu/env/backend/.env
+    frontend_env_file: /home/ubuntu/env/frontend/.env
   tasks:
-    - name: update
-      apt: update_cache=yes   
-   
-    - name: install apache2
-      apt: name=apache2 state=latest
+    - name: Update apt cache
+      apt:
+        update_cache: yes
 
-    - name: enabled mod_rewrite
-      apache2_module: name=rewrite state=present
+    - name: Install required packages
+      apt:
+        name:
+          - mongodb-server
+          - nodejs
+          - npm
+          - git
+        state: present
 
-    - name: enabled proxy
-      apache2_module: name=proxy state=present
+    - name: Start MongoDB service
+      service:
+        name: mongodb
+        state: started
+        enabled: yes
 
-    - name: enabled proxy_http
-      apache2_module: name=proxy_http state=present
-    
-    - name: enabled ssl
-      apache2_module: name=ssl state=present
-    
-    - name: enabled socache_shmcb
-      apache2_module: name=socache_shmcb state=present
+    - name: Clone MERN app from GitHub repository
+      git:
+        repo: "https://github.com/chyke007/Yum-food"
+        dest:  /home/ubuntu/yum-food/
+        clone: yes
 
-    - name: enabled mpm_event
-      apache2_module: name=mpm_event state=present
+    - name: Copy server .env file to the server
+      copy:
+        src: "{{ backend_env_file }}"
+        dest: /home/ubuntu/yum-food/.env
+        mode: 0644
 
-      notify:
-        - restart apache2
+    - name: Copy Frontend .env file to the frontend folder
+      copy:
+        src: "{{ frontend_env_file }}"
+        dest: /home/ubuntu/yum-food/frontend/.env
+        mode: 0644
 
-  handlers:
-    - name: restart apache2
-      service: name=apache2 state=restarted
+    - name: Install Packages
+      command: npm install 
+      args:
+        chdir: /home/ubuntu/yum-food/
+
+    - name: Run seeder function
+      command: npm run heroku-postbuild 
+      args:
+        chdir: /home/ubuntu/yum-food/
+
+    - name: Open port 4000 for Node.js app
+      ufw:
+        rule: allow
+        port: 4000
+        proto: tcp
+
+    - name: Start Node.js app
+      command: npm start
+      args:
+        chdir: /home/ubuntu/yum-food/
