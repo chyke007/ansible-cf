@@ -48,6 +48,12 @@ Resources:
                 Action: ssm:*
                 Resource: '*'
 
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: EC2-SSM-FullAccess-InstanceProfile
+      Roles:
+        - !Ref EC2InstanceRole
 
   VPC:
     Type: AWS::EC2::VPC
@@ -139,7 +145,7 @@ Resources:
       SecurityGroupIds:
         - !GetAtt "MasterSecurityGroup.GroupId"
       ImageId: ami-053b0d53c279acc90
-      IamInstanceProfile: !Ref EC2InstanceRole
+      IamInstanceProfile: !Ref EC2InstanceProfile
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
@@ -154,6 +160,7 @@ Resources:
           sudo pip3 install boto3
 
           # Download and install AWS CLI v2 using curl, unzip, and sudo
+          sudo apt install unzip
           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
           unzip awscliv2.zip
           sudo ./aws/install
@@ -168,6 +175,8 @@ Resources:
           enable_plugins = aws_ec2
           [defaults]
           inventory      = /opt/ansible/inventory/aws_ec2.yaml
+          remote_user = ubuntu
+          private_key_file = /home/ubuntu/.ssh/ssh_key.pem
           EOL
 
           # Create the /opt/ansible/inventory/aws_ec2.yaml file with AWS dynamic inventory configuration
