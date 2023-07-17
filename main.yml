@@ -123,6 +123,10 @@ Resources:
           FromPort: 22
           ToPort: 22
           IpProtocol: tcp
+        - CidrIp: 0.0.0.0/0
+          FromPort: 8080
+          ToPort: 8080
+          IpProtocol: tcp
 
   MasterEBSVolume:
     Type: AWS::EC2::Volume

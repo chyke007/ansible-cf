@@ -15,50 +15,70 @@
     - name: Install required packages
       apt:
         name:
-          - mongodb-server
           - nodejs
           - npm
           - git
         state: present
 
-    - name: Start MongoDB service
-      service:
-        name: mongodb
-        state: started
-        enabled: yes
-
     - name: Clone MERN app from GitHub repository
       git:
         repo: "https://github.com/chyke007/Yum-food"
         dest:  /home/ubuntu/yum-food/
+        version: master
+        force: yes
         clone: yes
 
     - name: Copy server .env file to the server
-      copy:
+      synchronize:
         src: "{{ backend_env_file }}"
         dest: /home/ubuntu/yum-food/.env
-        mode: 0644
+        mode: push
 
     - name: Copy Frontend .env file to the frontend folder
-      copy:
+      synchronize:
         src: "{{ frontend_env_file }}"
         dest: /home/ubuntu/yum-food/frontend/.env
-        mode: 0644
+        mode: push
 
     - name: Install Packages
       command: npm install 
       args:
         chdir: /home/ubuntu/yum-food/
+      become: yes
+      become_user: root
 
     - name: Run seeder function
-      command: npm run heroku-postbuild 
+      command: npm run seed 
       args:
         chdir: /home/ubuntu/yum-food/
+      become: yes
+      become_user: root
 
-    - name: Open port 4000 for Node.js app
+    - name: Removes cache
+      command: rm -rf node_modules
+      args:
+        chdir: /home/ubuntu/yum-food/frontend/
+      become: yes
+      become_user: root
+
+    - name: Installs required modules
+      command: npm install --cache /tmp/empty-cache
+      args:
+        chdir: /home/ubuntu/yum-food/frontend/
+      become: yes
+      become_user: root
+
+    - name: Build frontend
+      command: npm run build
+      args:
+        chdir: /home/ubuntu/yum-food/frontend/
+      become: yes
+      become_user: root
+
+    - name: Open port 8080 for Node.js app
       ufw:
         rule: allow
-        port: 4000
+        port: 8080
         proto: tcp
 
     - name: Start Node.js app
