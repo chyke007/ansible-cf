@@ -4,7 +4,6 @@ KEY_NAME="MyKeyPair"
 
 KEY_PAIR_ID=$(aws ec2 describe-key-pairs  --region "$AWS_REGION" --query "KeyPairs[?KeyName=='$KEY_NAME'].KeyPairId" --output text)
 
-
 # Set the SSM parameter name where the SSH private key is stored
 PARAMETER_NAME="/ec2/keypair/$KEY_PAIR_ID"
 

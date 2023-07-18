@@ -10,17 +10,6 @@ Resources:
     Properties:
       KeyName: !Ref KeyPairName
 
-  MyParameter:
-    Type: AWS::SSM::Parameter
-    DependsOn: MyKeyPair
-    Properties:
-      Name: /myapp/ssh-private-key
-      Description: SSH Private Key for EC2 instances
-      Type: String
-      Value:  !GetAtt MyKeyPair.KeyPairId
-      Tags:
-        Name: SSHPrivateKey
-
   EC2InstanceRole:
     Type: AWS::IAM::Role
     Properties:
@@ -116,16 +105,12 @@ Resources:
       VpcId: !Ref VPC 
       SecurityGroupIngress:
         - CidrIp: 0.0.0.0/0
-          FromPort: 80
-          ToPort: 80
-          IpProtocol: tcp
-        - CidrIp: 0.0.0.0/0
           FromPort: 22
           ToPort: 22
           IpProtocol: tcp
         - CidrIp: 0.0.0.0/0
-          FromPort: 8080
-          ToPort: 8080
+          FromPort: 4000
+          ToPort: 4000
           IpProtocol: tcp
 
   MasterEBSVolume:
